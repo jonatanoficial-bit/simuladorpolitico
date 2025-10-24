@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulador Político</title>
+    <style>
+        /* Estilização global */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #000;
+            color: #fff;
+        }
+
+        .screen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            overflow-y: auto;
+        }
+
+        .overlay {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 800px;
+            margin: 50px auto;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+        }
+
+        h1, h2, h3 {
+            margin-top: 0;
+        }
+
+        button {
+            padding: 12px 20px;
+            margin: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #d4af37;
+            color: #000;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+        }
+
+        button:disabled {
+            background-color: #666;
+            color: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .party-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .party-card {
+            width: 200px;
+            padding: 15px;
+            margin: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        .party-logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 25px;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        select, input[type="text"] {
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 16px;
+            width: 100%;
+            border-radius: 5px;
+            border: none;
+        }
+
+        /* Barra de progresso para popularidade e projetos */
+        .progress-container {
+            width: 80%;
+            margin: 20px auto;
+            background: #444;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 20px;
+            background: #4caf50;
+            width: 0;
+        }
+
+        .project-list, .vote-list {
+            margin-top: 20px;
+        }
+
+        .project-item, .vote-item {
+            background: rgba(0,0,0,0.4);
+            padding: 15px;
+            margin: 10px auto;
+            border-radius: 8px;
+            max-width: 700px;
+        }
+
+        .choice-btn {
+            display: block;
+            padding: 8px;
+            margin: 5px 0;
+            background: #3b6ba2;
+            border-radius: 5px;
+            color: #fff;
+            text-align: left;
+        }
+
+        .choice-btn:hover {
+            background: #2e5278;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+
+        .modal-content {
+            background: #222;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+        .close-modal {
+            background: #c33;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            border: none;
+            margin-top: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Tela de capa / introdução -->
+    <div id="screenIntro" class="screen" style="background-image: url('simulador_images/cover.jpg'); display:block;">
+        <div class="overlay">
+            <h1>Simulador Político</h1>
+            <p>Bem-vindo ao simulador político mais realista! Nesta experiência, você começará como vereador e poderá chegar à presidência tomando decisões difíceis, propondo leis e conquistando o apoio popular.</p>
+            <button onclick="goToPartySelection()">Iniciar</button>
+        </div>
+    </div>
+
+    <!-- Seleção de partido -->
+    <div id="screenParty" class="screen" style="background-image: url('simulador_images/assembly.jpg');">
+        <div class="overlay">
+            <h2>Escolha seu partido</h2>
+            <div class="party-grid" id="partyGrid"></div>
+        </div>
+    </div>
+
+    <!-- Seleção de estado -->
+    <div id="screenState" class="screen" style="background-image: url('simulador_images/municipal.jpg');">
+        <div class="overlay">
+            <h2>Escolha o estado</h2>
+            <select id="selectState"></select>
+            <button onclick="selectState()">Continuar</button>
+        </div>
+    </div>
+
+    <!-- Seleção de cidade -->
+    <div id="screenCity" class="screen" style="background-image: url('simulador_images/municipal.jpg');">
+        <div class="overlay">
+            <h2>Informe sua cidade</h2>
+            <input type="text" id="inputCity" placeholder="Digite o nome da cidade" />
+            <button onclick="selectCity()">Continuar</button>
+        </div>
+    </div>
+
+    <!-- Secretário explicando funções -->
+    <div id="screenSecretary" class="screen" style="background-image: url('simulador_images/municipal.jpg');">
+        <div class="overlay" id="secretaryContent">
+            <!-- Conteúdo será preenchido pelo JS -->
+        </div>
+    </div>
+
+    <!-- Tela de jogo legislativo (vereador, deputados e senador) -->
+    <div id="screenLegislative" class="screen">
+        <div class="overlay" id="legislativeContent">
+            <!-- Conteúdo será dinamicamente atualizado -->
+        </div>
+    </div>
+
+    <!-- Tela de campanha (eleições) -->
+    <div id="screenCampaign" class="screen" style="background-image: url('simulador_images/cityhall.jpg');">
+        <div class="overlay" id="campaignContent">
+            <!-- Conteúdo de campanha aqui -->
+        </div>
+    </div>
+
+    <!-- Tela de cargos executivos (prefeito, governador, presidente) -->
+    <div id="screenExecutive" class="screen">
+        <div class="overlay" id="executiveContent">
+            <!-- Conteúdo será preenchido -->
+        </div>
+    </div>
+
+    <!-- Modal para novas propostas -->
+    <div id="proposalModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Escolha uma proposta de projeto de lei</h3>
+            <div id="proposalList"></div>
+            <button class="close-modal" onclick="closeProposalModal()">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Modal para votar em projetos existentes -->
+    <div id="voteModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Projetos em votação</h3>
+            <div id="voteList"></div>
+            <button class="close-modal" onclick="closeVoteModal()">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Modal para eventos e crises executivos -->
+    <div id="eventModal" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="eventTitle"></h3>
+            <p id="eventDescription"></p>
+            <div id="eventOptions"></div>
+            <button class="close-modal" onclick="closeEventModal()">Fechar</button>
+        </div>
+    </div>
+
+    <script>
+        /*
+         * Variáveis globais do jogo
+         */
+        const parties = [
+            { name: "PTM", color: "#cc2929", ideology: "Esquerda", desc: "Inspirado no PT, defende políticas sociais e justiça social." },
+            { name: "PSDBR", color: "#2e6da4", ideology: "Centro-direita", desc: "Inspirado no PSDB, privilegia estabilização econômica e reformas." },
+            { name: "MBD", color: "#006600", ideology: "Centro", desc: "Inspirado no MDB, busca equilíbrio e conciliação." },
+            { name: "PBB", color: "#ffcc00", ideology: "Centro-esquerda", desc: "Inspirado no PSB, privilegia políticas sociais e desenvolvimento." },
+            { name: "PDT", color: "#004080", ideology: "Centro-esquerda", desc: "Partido trabalhista com foco em desenvolvimento humano." },
+            { name: "PLR", color: "#004000", ideology: "Direita", desc: "Inspirado no PL, prioriza liberdade econômica e conservadorismo." },
+            { name: "PCdoB", color: "#d00000", ideology: "Esquerda", desc: "Partido comunista, defende igualdade e intervenção estatal." },
+            { name: "PSOR", color: "#ff7700", ideology: "Esquerda", desc: "Inspirado no PSOL, defende justiça social e direitos civis." }
+        ];
+
+        const brazilStates = [
+            "Acre", "Alagoas", "Amapá", "Amazonas", "Bahia", "Ceará", "Distrito Federal", "Espírito Santo", "Goiás", "Maranhão", "Mato Grosso", "Mato Grosso do Sul", "Minas Gerais", "Pará", "Paraíba", "Paraná", "Pernambuco", "Piauí", "Rio de Janeiro", "Rio Grande do Norte", "Rio Grande do Sul", "Rondônia", "Roraima", "Santa Catarina", "São Paulo", "Sergipe", "Tocantins"
+        ];
+
+        const offices = [
+            { name: "Vereador", type: "legislative", bg: 'simulador_images/municipal.jpg' },
+            { name: "Prefeito", type: "executive", bg: 'simulador_images/cityhall.jpg' },
+            { name: "Deputado Estadual", type: "legislative", bg: 'simulador_images/assembly.jpg' },
+            { name: "Prefeito", type: "executive", bg: 'simulador_images/cityhall.jpg' },
+            { name: "Governador", type: "executive", bg: 'simulador_images/governor.jpg' },
+            { name: "Deputado Federal", type: "legislative", bg: 'simulador_images/federal.jpg' },
+            { name: "Senador", type: "legislative", bg: 'simulador_images/senate.jpg' },
+            { name: "Presidente", type: "executive", bg: 'simulador_images/president.jpg' }
+        ];
+
+        const generalProposals = [
+            "Construir mais escolas públicas", "Baixar impostos para pequenas empresas", "Criar programa de saúde preventiva", "Reduzir salários dos políticos", "Aumentar a frota de ônibus", "Estabelecer áreas verdes e parques", "Investir em tecnologia e inovação", "Aumentar investimentos em segurança pública", "Criar projeto de inclusão social", "Renovar a infraestrutura urbana", "Reduzir tarifas de transporte público", "Aprovar projeto de saneamento básico", "Criar assistência à população carente", "Incentivar o turismo local", "Aumentar verbas para cultura"
+        ];
+
+        const executiveEvents = [
+            {
+                title: "Greve dos professores",
+                description: "Os professores entraram em greve por melhores salários e condições de trabalho.",
+                options: [
+                    { text: "Negociar com os sindicatos e oferecer aumento gradual", change: +10 },
+                    { text: "Declarar greve ilegal e cortar ponto", change: -15 },
+                    { text: "Ignorar a greve e focar em outras áreas", change: -10 }
+                ]
+            },
+            {
+                title: "Epidemia de dengue",
+                description: "Um surto de dengue se espalha rapidamente pela população.",
+                options: [
+                    { text: "Lançar campanha de vacinação e limpeza urbana imediata", change: +15 },
+                    { text: "Delegar responsabilidade às prefeituras", change: -5 },
+                    { text: "Minimizar a situação para evitar pânico", change: -10 }
+                ]
+            },
+            {
+                title: "Crise econômica",
+                description: "O país enfrenta uma forte crise econômica com aumento do desemprego.",
+                options: [
+                    { text: "Investir em obras públicas para gerar empregos", change: +12 },
+                    { text: "Realizar reformas fiscais e cortes de gastos", change: +5 },
+                    { text: "Aumentar impostos para cobrir o déficit", change: -15 }
+                ]
+            },
+            {
+                title: "Escândalo de corrupção",
+                description: "Um escândalo de corrupção atinge membros do seu governo.",
+                options: [
+                    { text: "Afastar e investigar todos os envolvidos", change: +8 },
+                    { text: "Negar envolvimento e atacar a imprensa", change: -20 },
+                    { text: "Manter-se neutro e deixar a justiça agir", change: -5 }
+                ]
+            },
+            {
+                title: "Aumento da violência",
+                description: "Os índices de criminalidade aumentam significativamente.",
+                options: [
+                    { text: "Aumentar o efetivo policial e investir em inteligência", change: +10 },
+                    { text: "Implementar políticas sociais de longo prazo", change: +5 },
+                    { text: "Aprovar leis mais rígidas e penas mais duras", change: +3 }
+                ]
+            },
+            {
+                title: "Manifestação popular",
+                description: "Milhares vão às ruas protestar contra medidas impopulares.",
+                options: [
+                    { text: "Ouvir as demandas e rever as medidas", change: +12 },
+                    { text: "Reprimir as manifestações com força policial", change: -18 },
+                    { text: "Ignorar os protestos", change: -10 }
+                ]
+            },
+            {
+                title: "Desastre natural",
+                description: "Uma enchente devastadora atinge várias cidades.",
+                options: [
+                    { text: "Destinar recursos imediatos para socorro e reconstrução", change: +10 },
+                    { text: "Aguardar relatórios antes de agir", change: -5 },
+                    { text: "Solicitar ajuda internacional", change: +5 }
+                ]
+            },
+            {
+                title: "Crise de saúde pública",
+                description: "Hospitais superlotados e falta de medicamentos.",
+                options: [
+                    { text: "Investir em novos hospitais e contratações", change: +10 },
+                    { text: "Privatizar parte do sistema de saúde", change: -12 },
+                    { text: "Cortar benefícios sociais para bancar a saúde", change: -8 }
+                ]
+            },
+            {
+                title: "Desemprego juvenil",
+                description: "Alta taxa de desemprego entre os jovens.",
+                options: [
+                    { text: "Criar programas de estágio e primeiro emprego", change: +8 },
+                    { text: "Reduzir salários mínimos para incentivar contratações", change: -10 },
+                    { text: "Investir em educação técnica", change: +6 }
+                ]
+            },
+            {
+                title: "Crise ambiental",
+                description: "Desmatamento e poluição geram crise ambiental.",
+                options: [
+                    { text: "Implementar medidas de proteção ambiental e reflorestamento", change: +12 },
+                    { text: "Priorizar desenvolvimento econômico sobre o meio ambiente", change: -15 },
+                    { text: "Buscar acordos internacionais de proteção", change: +5 }
+                ]
+            }
+        ];
+
+        // Estado inicial do jogo
+        let gameState = {
+            currentOffice: 0,
+            party: null,
+            state: null,
+            city: null,
+            acceptedProposals: 0,
+            totalProposals: 0,
+            popularity: 50,
+            executiveDecisions: 0,
+            campaignStage: 0,
+            campaignScore: 0
+        };
+
+        /* Funções de navegação */
+        function goToPartySelection() {
+            showScreen('screenParty');
+            renderPartyOptions();
+        }
+
+        function selectParty(index) {
+            gameState.party = parties[index];
+            showScreen('screenState');
+            populateStates();
+        }
+
+        function selectState() {
+            const sel = document.getElementById('selectState');
+            if (sel.value) {
+                gameState.state = sel.value;
+                showScreen('screenCity');
+            }
+        }
+
+        function selectCity() {
+            const cityInput = document.getElementById('inputCity');
+            const city = cityInput.value.trim();
+            if (city) {
+                gameState.city = city;
+                showScreen('screenSecretary');
+                renderSecretary();
+            }
+        }
+
+        function proceedToOffice() {
+            // inicia oficina a partir do índice atual
+            const office = offices[gameState.currentOffice];
+            if (office.type === 'legislative') {
+                renderLegislative();
+                showScreen('screenLegislative');
+            } else if (office.type === 'executive') {
+                renderExecutive();
+                showScreen('screenExecutive');
+            }
+        }
+
+        /* Renderizadores de interface */
+        function renderPartyOptions() {
+            const grid = document.getElementById('partyGrid');
+            grid.innerHTML = '';
+            parties.forEach((p, idx) => {
+                const card = document.createElement('div');
+                card.className = 'party-card';
+                const logo = document.createElement('div');
+                logo.className = 'party-logo';
+                logo.style.backgroundColor = p.color;
+                logo.textContent = p.name;
+                const name = document.createElement('h3');
+                name.textContent = p.name;
+                const ideology = document.createElement('p');
+                ideology.innerHTML = `<strong>Ideologia:</strong> ${p.ideology}`;
+                const desc = document.createElement('p');
+                desc.textContent = p.desc;
+                const btn = document.createElement('button');
+                btn.textContent = 'Escolher';
+                btn.onclick = () => selectParty(idx);
+                card.appendChild(logo);
+                card.appendChild(name);
+                card.appendChild(ideology);
+                card.appendChild(desc);
+                card.appendChild(btn);
+                grid.appendChild(card);
+            });
+        }
+
+        function populateStates() {
+            const sel = document.getElementById('selectState');
+            sel.innerHTML = '';
+            brazilStates.forEach(state => {
+                const opt = document.createElement('option');
+                opt.value = state;
+                opt.textContent = state;
+                sel.appendChild(opt);
+            });
+        }
+
+        function renderSecretary() {
+            const office = offices[gameState.currentOffice].name;
+            const container = document.getElementById('secretaryContent');
+            container.innerHTML = '';
+            const title = document.createElement('h2');
+            title.textContent = `Parabéns! Você foi eleito(a) ${office} de ${gameState.city} - ${gameState.state}!`;
+            const para = document.createElement('p');
+            para.textContent = `Como ${office}, seu papel é propor e votar projetos de lei em defesa do povo. Você precisa conquistar apoio popular e ter pelo menos 15 projetos aprovados para se candidatar ao próximo cargo.`;
+            const btn = document.createElement('button');
+            btn.textContent = 'Iniciar mandato';
+            btn.onclick = proceedToOffice;
+            container.appendChild(title);
+            container.appendChild(para);
+            container.appendChild(btn);
+        }
+
+        /* Funções do legislativo */
+        function renderLegislative() {
+            const office = offices[gameState.currentOffice];
+            // Set background of legislative screen
+            const legScreen = document.getElementById('screenLegislative');
+            // usar caminho da imagem em vez de base64
+            legScreen.style.backgroundImage = `url('${office.bg}')`;
+            const content = document.getElementById('legislativeContent');
+            content.innerHTML = '';
+            const title = document.createElement('h2');
+            title.textContent = `${office.name} - ${gameState.city}/${gameState.state}`;
+            const partyInfo = document.createElement('p');
+            partyInfo.innerHTML = `<strong>Partido:</strong> ${gameState.party.name} (${gameState.party.ideology})`;
+            const progressLabel = document.createElement('p');
+            progressLabel.textContent = `Projetos aprovados: ${gameState.acceptedProposals}/15`;
+            const progressContainer = document.createElement('div');
+            progressContainer.className = 'progress-container';
+            const progressBar = document.createElement('div');
+            progressBar.className = 'progress-bar';
+            progressBar.style.width = `${(gameState.acceptedProposals / 15) * 100}%`;
+            progressContainer.appendChild(progressBar);
+            // Botões
+            const voteBtn = document.createElement('button');
+            voteBtn.textContent = 'Votar em projetos';
+            voteBtn.onclick = openVoteModal;
+            const proposeBtn = document.createElement('button');
+            proposeBtn.textContent = 'Propor novo projeto';
+            proposeBtn.onclick = openProposalModal;
+            const partyStatsBtn = document.createElement('button');
+            partyStatsBtn.textContent = 'Estatísticas do partido';
+            partyStatsBtn.onclick = showPartyStats;
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Salvar jogo';
+            saveBtn.onclick = saveGame;
+            const restartBtn = document.createElement('button');
+            restartBtn.textContent = 'Voltar ao início';
+            restartBtn.onclick = restartGame;
+            const candidateBtn = document.createElement('button');
+            candidateBtn.textContent = 'Candidatar-se ao próximo cargo';
+            candidateBtn.onclick = startCampaign;
+            candidateBtn.disabled = (gameState.acceptedProposals < 15);
+            content.appendChild(title);
+            content.appendChild(partyInfo);
+            content.appendChild(progressLabel);
+            content.appendChild(progressContainer);
+            content.appendChild(voteBtn);
+            content.appendChild(proposeBtn);
+            content.appendChild(partyStatsBtn);
+            content.appendChild(candidateBtn);
+            content.appendChild(saveBtn);
+            content.appendChild(restartBtn);
+        }
+
+        function openProposalModal() {
+            const modal = document.getElementById('proposalModal');
+            const list = document.getElementById('proposalList');
+            list.innerHTML = '';
+            // Cria botões para cada proposta aleatória
+            generalProposals.forEach((proposal) => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = proposal;
+                btn.onclick = function() {
+                    proposeProject(proposal);
+                };
+                list.appendChild(btn);
+            });
+            modal.classList.remove('hidden');
+        }
+
+        function closeProposalModal() {
+            document.getElementById('proposalModal').classList.add('hidden');
+        }
+
+        function proposeProject(proposal) {
+            closeProposalModal();
+            gameState.totalProposals++;
+            // Aceitação aleatória (base 50% + influência do partido do governo)
+            const accepted = Math.random() < 0.6;
+            if (accepted) {
+                gameState.acceptedProposals++;
+                alert(`O projeto "${proposal}" foi aprovado!`);
+            } else {
+                alert(`O projeto "${proposal}" foi rejeitado.`);
+            }
+            renderLegislative();
+        }
+
+        function openVoteModal() {
+            const modal = document.getElementById('voteModal');
+            const list = document.getElementById('voteList');
+            list.innerHTML = '';
+            // Gerar três projetos aleatórios
+            for (let i = 0; i < 3; i++) {
+                const proj = generalProposals[Math.floor(Math.random() * generalProposals.length)];
+                // votos simulados de outros membros (random)
+                const totalVotes = Math.floor(Math.random() * 100) + 50;
+                let yesVotes = Math.floor(totalVotes * (Math.random() * 0.6 + 0.2));
+                let noVotes = totalVotes - yesVotes;
+                const item = document.createElement('div');
+                item.className = 'vote-item';
+                const title = document.createElement('p');
+                title.innerHTML = `<strong>${proj}</strong>`;
+                const votes = document.createElement('p');
+                votes.textContent = `Sim: ${yesVotes} | Não: ${noVotes}`;
+                const voteYesBtn = document.createElement('button');
+                voteYesBtn.textContent = 'Votar Sim';
+                voteYesBtn.onclick = function() {
+                    yesVotes++;
+                    closeVoteModal();
+                    concludeVote(proj, yesVotes, noVotes);
+                };
+                const voteNoBtn = document.createElement('button');
+                voteNoBtn.textContent = 'Votar Não';
+                voteNoBtn.onclick = function() {
+                    noVotes++;
+                    closeVoteModal();
+                    concludeVote(proj, yesVotes, noVotes);
+                };
+                item.appendChild(title);
+                item.appendChild(votes);
+                item.appendChild(voteYesBtn);
+                item.appendChild(voteNoBtn);
+                list.appendChild(item);
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeVoteModal() {
+            document.getElementById('voteModal').classList.add('hidden');
+        }
+
+        function concludeVote(proposal, yesVotes, noVotes) {
+            const result = (yesVotes > noVotes);
+            if (result) {
+                alert(`O projeto "${proposal}" foi aprovado!`);
+                gameState.acceptedProposals++;
+            } else {
+                alert(`O projeto "${proposal}" foi rejeitado.`);
+            }
+            renderLegislative();
+        }
+
+        function showPartyStats() {
+            // Número aleatório de eleitos e estatística de votos sim
+            const totalElected = Math.floor(Math.random() * 50) + 50;
+            const supporters = Math.floor(totalElected * 0.9);
+            alert(`Seu partido tem ${totalElected} representantes nesta casa. Destes, aproximadamente 90% (${supporters}) costumam votar a favor dos seus projetos.`);
+        }
+
+        /* Campanha e eleições */
+        const campaignThemes = ['Educação', 'Saúde', 'Economia', 'Segurança', 'Meio Ambiente'];
+        function startCampaign() {
+            gameState.campaignStage = 0;
+            gameState.campaignScore = 0;
+            renderCampaignTheme();
+            showScreen('screenCampaign');
+        }
+
+        function renderCampaignTheme() {
+            const container = document.getElementById('campaignContent');
+            container.innerHTML = '';
+            const title = document.createElement('h2');
+            title.textContent = `Campanha para ${offices[gameState.currentOffice + 1].name}`;
+            const subtitle = document.createElement('p');
+            subtitle.textContent = 'Escolha o tema principal da sua campanha:';
+            container.appendChild(title);
+            container.appendChild(subtitle);
+            campaignThemes.forEach((theme) => {
+                const btn = document.createElement('button');
+                btn.textContent = theme;
+                btn.onclick = function() {
+                    gameState.selectedTheme = theme;
+                    renderCampaignSpeech();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function renderCampaignSpeech() {
+            const container = document.getElementById('campaignContent');
+            container.innerHTML = '';
+            const stage = gameState.campaignStage;
+            if (stage >= 5) {
+                finishCampaign();
+                return;
+            }
+            const title = document.createElement('h2');
+            title.textContent = `Discurso ${stage + 1} de 5`;
+            const question = document.createElement('p');
+            question.textContent = `Escolha o foco deste discurso:`;
+            container.appendChild(title);
+            container.appendChild(question);
+            // gerar três opções diferentes
+            const options = [
+                { text: `Prometer melhorias em ${gameState.selectedTheme}`, score: 2 },
+                { text: `Atacar adversários e defender seu partido`, score: 0 },
+                { text: `Apresentar dados e propostas realistas`, score: 1 }
+            ];
+            options.forEach((opt) => {
+                const btn = document.createElement('button');
+                btn.textContent = opt.text;
+                btn.onclick = function() {
+                    // resultado aleatório + mérito
+                    const rand = Math.random();
+                    if (rand < 0.4) {
+                        gameState.campaignScore += opt.score; // bônus
+                    }
+                    gameState.campaignStage++;
+                    renderCampaignSpeech();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function finishCampaign() {
+            const container = document.getElementById('campaignContent');
+            container.innerHTML = '';
+            const title = document.createElement('h2');
+            title.textContent = 'Resultado da eleição';
+            const rand = Math.random();
+            const finalScore = gameState.campaignScore / 10 + rand * 0.6;
+            const win = finalScore > 0.3;
+            const result = document.createElement('p');
+            if (win) {
+                result.textContent = 'Parabéns! Você foi eleito(a) para o novo cargo!';
+                gameState.currentOffice++;
+                // resetar contadores para o novo cargo
+                gameState.acceptedProposals = 0;
+                gameState.totalProposals = 0;
+                gameState.popularity = 50;
+                gameState.executiveDecisions = 0;
+                const btn = document.createElement('button');
+                btn.textContent = 'Assumir cargo';
+                btn.onclick = proceedToOffice;
+                container.appendChild(title);
+                container.appendChild(result);
+                container.appendChild(btn);
+            } else {
+                result.textContent = 'Infelizmente você não conquistou votos suficientes. Continue trabalhando para conquistar o apoio do povo.';
+                const btn = document.createElement('button');
+                btn.textContent = 'Voltar ao mandato';
+                btn.onclick = function() {
+                    showScreen('screenLegislative');
+                    renderLegislative();
+                };
+                container.appendChild(title);
+                container.appendChild(result);
+                container.appendChild(btn);
+            }
+        }
+
+        /* Funções executivas */
+        function renderExecutive() {
+            const office = offices[gameState.currentOffice];
+            // definindo background
+            const execScreen = document.getElementById('screenExecutive');
+            // usar caminho da imagem
+            execScreen.style.backgroundImage = `url('${office.bg}')`;
+            const container = document.getElementById('executiveContent');
+            container.innerHTML = '';
+            const title = document.createElement('h2');
+            title.textContent = `${office.name} de ${gameState.city}/${gameState.state}`;
+            const partyInfo = document.createElement('p');
+            partyInfo.innerHTML = `<strong>Partido:</strong> ${gameState.party.name} (${gameState.party.ideology})`;
+            const popularityLabel = document.createElement('p');
+            popularityLabel.textContent = `Popularidade: ${Math.round(gameState.popularity)}%`;
+            const progressContainer = document.createElement('div');
+            progressContainer.className = 'progress-container';
+            const progressBar = document.createElement('div');
+            progressBar.className = 'progress-bar';
+            progressBar.style.width = `${gameState.popularity}%`;
+            progressContainer.appendChild(progressBar);
+            const decideBtn = document.createElement('button');
+            decideBtn.textContent = 'Tomar decisão';
+            decideBtn.onclick = function() {
+                openEventModal();
+            };
+            const candidateBtn = document.createElement('button');
+            candidateBtn.textContent = 'Candidatar-se ao próximo cargo';
+            candidateBtn.disabled = !(gameState.popularity >= 60 && gameState.executiveDecisions >= 5);
+            candidateBtn.onclick = function() {
+                startCampaign();
+            };
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Salvar jogo';
+            saveBtn.onclick = saveGame;
+            const restartBtn = document.createElement('button');
+            restartBtn.textContent = 'Voltar ao início';
+            restartBtn.onclick = restartGame;
+            container.appendChild(title);
+            container.appendChild(partyInfo);
+            container.appendChild(popularityLabel);
+            container.appendChild(progressContainer);
+            container.appendChild(decideBtn);
+            container.appendChild(candidateBtn);
+            container.appendChild(saveBtn);
+            container.appendChild(restartBtn);
+        }
+
+        function openEventModal() {
+            const modal = document.getElementById('eventModal');
+            // escolher evento aleatoriamente
+            const event = executiveEvents[Math.floor(Math.random() * executiveEvents.length)];
+            document.getElementById('eventTitle').textContent = event.title;
+            document.getElementById('eventDescription').textContent = event.description;
+            const optionsDiv = document.getElementById('eventOptions');
+            optionsDiv.innerHTML = '';
+            event.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = opt.text;
+                btn.onclick = function() {
+                    gameState.popularity += opt.change;
+                    if (gameState.popularity > 100) gameState.popularity = 100;
+                    if (gameState.popularity < 0) gameState.popularity = 0;
+                    gameState.executiveDecisions++;
+                    closeEventModal();
+                    if (gameState.popularity <= 0) {
+                        alert('Sua popularidade caiu a zero. Você sofreu impeachment!');
+                        restartGame();
+                    } else {
+                        renderExecutive();
+                    }
+                };
+                optionsDiv.appendChild(btn);
+            });
+            modal.classList.remove('hidden');
+        }
+
+        function closeEventModal() {
+            document.getElementById('eventModal').classList.add('hidden');
+        }
+
+        /* Funções de sistema */
+        function showScreen(screenId) {
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(s => s.style.display = 'none');
+            const screen = document.getElementById(screenId);
+            screen.style.display = 'block';
+        }
+
+        function saveGame() {
+            localStorage.setItem('simuladorPoliticoSave', JSON.stringify(gameState));
+            alert('Jogo salvo com sucesso!');
+        }
+
+        function loadGame() {
+            const data = localStorage.getItem('simuladorPoliticoSave');
+            if (data) {
+                gameState = JSON.parse(data);
+                const office = offices[gameState.currentOffice];
+                if (office.type === 'legislative') {
+                    renderLegislative();
+                    showScreen('screenLegislative');
+                } else {
+                    renderExecutive();
+                    showScreen('screenExecutive');
+                }
+            } else {
+                alert('Nenhum jogo salvo encontrado.');
+            }
+        }
+
+        function restartGame() {
+            if (confirm('Deseja reiniciar o jogo? Todo progresso será perdido.')) {
+                localStorage.removeItem('simuladorPoliticoSave');
+                // resetar estado
+                gameState = {
+                    currentOffice: 0,
+                    party: null,
+                    state: null,
+                    city: null,
+                    acceptedProposals: 0,
+                    totalProposals: 0,
+                    popularity: 50,
+                    executiveDecisions: 0,
+                    campaignStage: 0,
+                    campaignScore: 0
+                };
+                showScreen('screenIntro');
+            }
+        }
+
+        // Carregar jogo salvo ao iniciar
+        window.onload = function() {
+            // opcional: carregar automaticamente se houver save
+            // loadGame();
+        };
+    </script>
+</body>
+</html>
